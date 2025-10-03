@@ -23,7 +23,8 @@ struct Args {
     index_prefix: String,
     #[arg(long = "older-than", default_value = "25m")]
     older_than: String,
-    #[arg(long = "dryrun", default_value_t = true)]
+    #[arg(long, default_value_t = true, action = clap::ArgAction::SetTrue)]
+    #[arg(long = "no-dryrun", action = clap::ArgAction::SetFalse)]
     dryrun: bool,
 }
 
