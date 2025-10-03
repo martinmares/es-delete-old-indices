@@ -9,6 +9,7 @@ use serde::Deserialize;
 use std::time::Duration;
 use tracing::{debug, error, info, trace, warn};
 use tracing_subscriber::EnvFilter;
+use clap::ArgAction;
 
 #[derive(Parser, Debug)]
 #[command(name = "es-retention", version, about = "Delete old monthly indices by name (YYYY-MM or YYYY.MM)")]
@@ -23,9 +24,8 @@ struct Args {
     index_prefix: String,
     #[arg(long = "older-than", default_value = "25m")]
     older_than: String,
-    #[arg(long, default_value_t = true, action = clap::ArgAction::SetTrue)]
-    #[arg(long = "no-dryrun", action = clap::ArgAction::SetFalse)]
-    dryrun: bool,
+    #[arg(long = "no-dryrun", action = ArgAction::SetTrue)]
+    no_dryrun: bool,
 }
 
 #[derive(Deserialize)]
@@ -155,15 +155,17 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    if args.dryrun {
-        info!("DRY-RUN: would delete {} indices (oldest first):", targets.len());
+    let dryrun = !args.no_dryrun; // default true (dry-run), pokud uživatel zadá --no-dryrun => false
+
+    if dryrun {
+        info!("Dryrun: would delete {} indices (oldest first):", targets.len());
         for (t, age) in &targets {
             info!("{t}  (age={}m)", age);
         }
         return Ok(());
     }
 
-    info!("Deleting {} indices (oldest first)…", targets.len());
+    info!("Live: Deleting {} indices (oldest first)…", targets.len());
     for (idx, _age) in targets {
         let mut del_url = base.clone();
         let path = utf8_percent_encode(&idx, NON_ALPHANUMERIC).to_string();
